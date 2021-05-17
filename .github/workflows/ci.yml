@@ -56,5 +56,6 @@ jobs:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
       run: |
         poetry build
-        poetry config pypi-token.pypi $PYPI_TOKEN
-        poetry publish
+        #poetry config pypi-token.pypi $PYPI_TOKEN
+        #poetry publish
+        # will get this working eventually, it works locally for me <shrug>
