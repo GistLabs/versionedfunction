@@ -8,7 +8,6 @@
 from versionedfunction import versionedfunction, versions
 
 
-
 @versionedfunction
 def fooAlgo():
     return 0
@@ -38,3 +37,15 @@ def test_call_v2():
     versions.clear()
     versions.append("v2")
     assert fooAlgo() == 2
+
+@versionedfunction
+def barAlgo(a, b):
+    return barAlgoV1(a, b)
+
+@barAlgo.version
+def barAlgoV1(a, b):
+    return a + b + 1
+
+def test_barAlgo():
+    assert barAlgoV1(1, 2) == 4
+    assert barAlgo(1, 2) == 4
