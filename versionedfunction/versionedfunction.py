@@ -7,38 +7,28 @@
 A bit of naming: vfunc is a versionedfunction, and vfuncv is a version of a versionedfunction
 """
 
-versions = [] # list of versions to use for versionedfunctions, global context
 
 def versionedfunction(vfunc):
-    versionInfo = VersionInfo(vfunc)# main data structure to hold state for versionedfunctions
+    versionInfo = VersionInfo(vfunc)
 
     def version(vfuncv):
-        """
-
-        :param vfuncv: Functions to be versioned
-        :return:
-        """
-        versionName = _find_version_name(vfunc.__name__, vfuncv.__name__)
-        versionInfo[versionName] = vfuncv
-
+        versionInfo.addVersion(vfuncv)
         return vfuncv
 
     def vfunc_wrapper(*args, **kwargs):
-        if versions:
-            v = versions[0]
-            f = versionInfo[v]
-        else:
-            f = vfunc
+        v = versionContext.lookupVersion(versionInfo.name)
+        f = versionInfo[v]
         return f(*args, **kwargs)
 
     vfunc_wrapper.versionInfo = versionInfo
     vfunc_wrapper.version = version
+    versionContext.register(versionInfo)
 
     return vfunc_wrapper
 
 class VersionInfo():
     """
-    This data structure is used for each versionedfunction and connects the initial and each version together
+    This data structure is used for each versionedfunction and connects the initial func and each version together
     """
     def __init__(self, vfunc):
         self.vfunc = vfunc
@@ -46,17 +36,55 @@ class VersionInfo():
 
     @property
     def name(self):
-        return self.vfunc.__name__
+        return functionNameFrom(self.vfunc)
 
-    def __getitem__(self, item):
-        return self.versions[item]
+    def __getitem__(self, v):
+        # todo add way better info to error
+        if v in self.versions:
+            return self.versions[v]
+        else:
+            if v: # anything truthy...
+                raise NameError(f'Version {v} not defined')
+            else:
+                return self.vfunc # default on empty
+
+    def addVersion(self, vfuncv):
+        versionName = versionFrom(self.vfunc.__name__, vfuncv.__name__)
+        self[versionName] = vfuncv
 
     def __setitem__(self, key, value):
         self.versions[key] = value
 
-def _find_version_name(vfuncName, vfuncvName):
+class VersionContext():
     """
-    Remove the base versionedfunction name and left strip - characters
+    Global context to hold mapping from name to function to which version to use
+    """
+    def __init__(self):
+        self.name2version = {}
+        self.name2versionInfo = {} # populated during import/decorators
+
+    def register(self, versionInfo):
+        if versionInfo.name in self.name2versionInfo:
+            raise NameError(f"Already registered function {versionInfo.name} in {self.name2versionInfo[versionInfo.name]}")
+        self.name2versionInfo[versionInfo.name] = versionInfo
+
+    def __getitem__(self, name):
+        return self.name2version[name]
+
+    def lookupVersion(self, name):
+        if name in self.name2version:
+            return self.name2version[name]
+        else:
+            return None
+
+    def __setitem__(self, name, version):
+        self.name2version[name] = version
+
+versionContext = VersionContext() # versions to use for versionedfunctions, global context
+
+def versionFrom(vfuncName, vfuncvName):
+    """
+    Remove the base versionedfunction name and left strip _ characters
 
     :param vfuncName: A versionedfunction name (string)
     :param vfuncvName: A function that is a version of a versionedfunction (name, string again)
@@ -64,3 +92,31 @@ def _find_version_name(vfuncName, vfuncvName):
     """
     assert vfuncvName.startswith(vfuncName)
     return vfuncvName[len(vfuncName):].lstrip('_')
+
+def functionNameFrom(vfunc):
+    """
+    The string used to identify a versionedfunction is defined by:
+    * is the last two components of vfunc.__qualname__ [via split('.')]
+    * if only 1 component, the prefix by module name of defining module
+
+    class Foo():
+        @versionedfunction
+        def bar(self):
+            pass
+    would have 'Foo.bar" as __qualname__ and be used here to identify and map to versions
+
+    <module_foo.py>
+    @versionedfunction
+    def bar():
+        pass
+    would have 'module_foo.bar' as name used to identify and map to versions
+
+    This is intended to be a reasonable blend between fully qualified pathnames and only function name.
+    """
+    components = vfunc.__qualname__.split('.')[-2:] # last two components of name
+
+    if len(components)<2:
+        module = vfunc.__module__.split('.')[-1] # last module name
+        components.insert(0, module)
+
+    return '.'.join(components)
