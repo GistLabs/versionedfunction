@@ -15,6 +15,10 @@ def versionedfunction(vfunc):
         versionInfo.addVersion(vfuncv)
         return vfuncv
 
+    def default(vfuncv):
+        versionInfo.setDefault(vfuncv)
+        return vfuncv
+
     def vfunc_wrapper(*args, **kwargs):
         v = versionContext.lookupVersion(versionInfo.name)
         f = versionInfo[v]
@@ -22,6 +26,7 @@ def versionedfunction(vfunc):
 
     vfunc_wrapper.versionInfo = versionInfo
     vfunc_wrapper.version = version
+    vfunc_wrapper.default = default
     versionContext.register(versionInfo)
 
     return vfunc_wrapper
@@ -33,17 +38,17 @@ class VersionInfo():
     def __init__(self, vfunc):
         self.vfunc = vfunc
         self.versions = {}
+        self.defaultVersion = None
 
     @property
     def name(self):
         return functionNameFrom(self.vfunc)
 
     def __getitem__(self, v):
-        # todo add way better info to error
         if v in self.versions:
             return self.versions[v]
         else:
-            if v: # anything truthy...
+            if v: # anything truthy... like a version name that doesn't match
                 raise NameError(f'Version {v} not defined')
             else:
                 return self.vfunc # default on empty
@@ -53,8 +58,14 @@ class VersionInfo():
         self[versionName] = vfuncv
         vfuncv.versionInfo = self
 
+    def setDefault(self, vfuncv):
+        self.defaultVersion = self.versionName(vfuncv)
+
     def __setitem__(self, key, value):
         self.versions[key] = value
+
+    def versionName(self, vfuncv):
+        return versionFrom(self.vfunc.__name__, vfuncv.__name__)
 
 class VersionContext():
     """

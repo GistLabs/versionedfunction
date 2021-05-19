@@ -116,12 +116,13 @@ class Foo():
     def algo1(self):
         return 1
 
+    @algo.default
     @algo.version
     def algo2(self):
         return 2
+foo = Foo()
 
 def test_classmethod_versioned():
-    foo = Foo()
     assert foo.algo.versionInfo.name == "Foo.algo"
 
     assert foo.algo() == 0
@@ -130,7 +131,11 @@ def test_classmethod_versioned():
     assert foo.algo() == 1
 
 def test_each_versionInfo():
-    foo = Foo()
     assert foo.algo1.versionInfo.name == 'Foo.algo'
     assert foo.algo.versionInfo == foo.algo1.versionInfo
     assert foo.algo1.versionInfo == foo.algo2.versionInfo
+
+def test_default():
+    assert foo.algo.versionInfo.defaultVersion == '2'
+    versionContext[foo.algo.versionInfo.name] = None # remove any set values
+    assert foo.algo() == 2 # must use default
