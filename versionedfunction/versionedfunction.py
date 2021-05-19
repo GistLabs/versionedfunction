@@ -28,7 +28,7 @@ def versionedfunction(vfunc):
 
 class VersionInfo():
     """
-    This data structure is used for each versionedfunction and connects the initial func and each version together
+    This is used for each versionedfunction and connects the initial func and each version together
     """
     def __init__(self, vfunc):
         self.vfunc = vfunc
@@ -51,6 +51,7 @@ class VersionInfo():
     def addVersion(self, vfuncv):
         versionName = versionFrom(self.vfunc.__name__, vfuncv.__name__)
         self[versionName] = vfuncv
+        vfuncv.versionInfo = self
 
     def __setitem__(self, key, value):
         self.versions[key] = value

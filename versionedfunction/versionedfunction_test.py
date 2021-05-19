@@ -106,3 +106,31 @@ def test_listSlice():
 
     y = (3,)
     assert y[-2:] == (3,)
+
+class Foo():
+    @versionedfunction
+    def algo(self):
+        return 0
+
+    @algo.version
+    def algo1(self):
+        return 1
+
+    @algo.version
+    def algo2(self):
+        return 2
+
+def test_classmethod_versioned():
+    foo = Foo()
+    assert foo.algo.versionInfo.name == "Foo.algo"
+
+    assert foo.algo() == 0
+
+    versionContext['Foo.algo'] = "1"
+    assert foo.algo() == 1
+
+def test_each_versionInfo():
+    foo = Foo()
+    assert foo.algo1.versionInfo.name == 'Foo.algo'
+    assert foo.algo.versionInfo == foo.algo1.versionInfo
+    assert foo.algo1.versionInfo == foo.algo2.versionInfo
