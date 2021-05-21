@@ -8,6 +8,7 @@
 from versionedfunction import versionedfunction, versionContext, versionFrom
 import pytest
 
+
 @versionedfunction
 def fooAlgo():
     return 0
@@ -27,14 +28,14 @@ def test_fooAlgo_versionInfo():
 
 def test_fooAlgo_v1_in_versions():
     assert fooAlgo.versionInfo is not None
-    assert fooAlgo.versionInfo['v1'] == fooAlgo_v1
+    assert fooAlgo.versionInfo.lookupFunction('v1') == fooAlgo_v1
 
 @fooAlgo.version
 def fooAlgo_v2():
     return 2
 
 def test_fooAlgo_v2_in_versions():
-    assert fooAlgo.versionInfo['v2'] == fooAlgo_v2
+    assert fooAlgo.versionInfo.lookupFunction('v2') == fooAlgo_v2
 
 def test_call_v2():
     versionContext['versionedfunction_test.fooAlgo'] = 'v2'
@@ -125,7 +126,7 @@ foo = Foo()
 def test_classmethod_versioned():
     assert foo.algo.versionInfo.name == "Foo.algo"
 
-    assert foo.algo() == 0
+    assert foo.algo() == 2
 
     versionContext['Foo.algo'] = "1"
     assert foo.algo() == 1
