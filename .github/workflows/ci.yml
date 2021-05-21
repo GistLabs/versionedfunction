@@ -53,7 +53,7 @@ jobs:
         pip install setuptools poetry wheel twine
     - name: Build version from git
       run: |
-        poetry version `poetry version -s`.`git rev-list --count HEAD`+`git rev-parse --short HEAD`
+        poetry version `poetry version -s`.`git rev-list --count HEAD`
     - name: Build
       run: |
         poetry build
