@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "versionedfunction"
-version = "0.1.0"
+version = "0.1.1"
 description = "Sometimes you want to be able to dynamically call different versions of a function"
 authors = ["John Heintz <john@gistlabs.com>"]
 
