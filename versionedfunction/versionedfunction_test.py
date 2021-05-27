@@ -5,7 +5,7 @@
 
 """
 
-from versionedfunction import versionedfunction, versionContext, versionFrom
+from versionedfunction import versionedfunction, versionContext, versionNameFrom
 import pytest
 
 
@@ -24,7 +24,7 @@ def test_fooAlgo_version_annotation():
     return fooAlgo_v1 == 1
 
 def test_fooAlgo_versionInfo():
-    assert fooAlgo.versionInfo.name == 'versionedfunction_test.fooAlgo'
+    assert fooAlgo.versionInfo.key == 'versionedfunction_test.fooAlgo'
 
 def test_fooAlgo_v1_in_versions():
     assert fooAlgo.versionInfo is not None
@@ -77,8 +77,8 @@ def test_bad_version_fails():
         assert barAlgo(1, 1) == 3
 
 def test_registered_names():
-    assert versionContext.name2versionInfo['versionedfunction_test.barAlgo'] == barAlgo.versionInfo
-    assert versionContext.name2versionInfo['versionedfunction_test.fooAlgo'] == fooAlgo.versionInfo
+    assert versionContext.key2versionInfo['versionedfunction_test.barAlgo'] == barAlgo.versionInfo
+    assert versionContext.key2versionInfo['versionedfunction_test.fooAlgo'] == fooAlgo.versionInfo
 
 def test_not_double_register():
     with pytest.raises(NameError, match="Already registered function versionedfunction_test.barAlgo"):
@@ -86,12 +86,12 @@ def test_not_double_register():
             @versionedfunction
             def barAlgo(self):
                 pass
-        assert versionedfunction_test.barAlgo.versionInfo.name == "versionedfunction_test.barAlgo"
+        assert versionedfunction_test.barAlgo.versionInfo.key == "versionedfunction_test.barAlgo"
 
 def test_func2name():
     assert versionedfunction.__module__ == "versionedfunction.versionedfunction"
     assert versionedfunction.__qualname__ == 'versionedfunction'
-    assert versionFrom.__qualname__ == 'versionFrom'
+    assert versionNameFrom.__qualname__ == 'versionNameFrom'
 
 def test_method2name():
     assert versionContext.register.__qualname__ == 'VersionContext.register'
@@ -124,19 +124,21 @@ class Foo():
 foo = Foo()
 
 def test_classmethod_versioned():
-    assert foo.algo.versionInfo.name == "Foo.algo"
+    assert foo.algo.versionInfo.key == "Foo.algo"
 
     assert foo.algo() == 2
 
     versionContext['Foo.algo'] = "1"
     assert foo.algo() == 1
 
-def test_each_versionInfo():
-    assert foo.algo1.versionInfo.name == 'Foo.algo'
+def test_each_versionInfoName():
+    assert foo.algo1.versionInfo.key == 'Foo.algo'
     assert foo.algo.versionInfo == foo.algo1.versionInfo
     assert foo.algo1.versionInfo == foo.algo2.versionInfo
+    #assert Foo.algo1.versionName == "1"
+    #assert Foo.algo2.versionName == "2"
 
 def test_default():
-    assert foo.algo.versionInfo.defaultVersion == '2'
-    versionContext[foo.algo.versionInfo.name] = None # remove any set values
+    assert Foo.algo.versionInfo.defaultVersionName == '2'
+    versionContext[Foo.algo.versionInfo.key] = None # remove any set values
     assert foo.algo() == 2 # must use default

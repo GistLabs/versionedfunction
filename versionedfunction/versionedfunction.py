@@ -4,7 +4,10 @@
 """
 
 
-A bit of naming: vfunc is a versionedfunction, and vfuncv is a version of a versionedfunction
+Naming is hard:
+ * vfunc is a versionedfunction, and vfuncv is a version of a versionedfunction
+ * versionKey is unique string to identify versionedfunction, like 'Foo.algo' or 'modulename.vfunc'
+ * versionName is the version designation, like 2 or v3 or version4
 """
 
 
@@ -20,8 +23,8 @@ def versionedfunction(vfunc):
         return vfuncv
 
     def vfunc_wrapper(*args, **kwargs):
-        v = versionContext.lookupVersion(versionInfo.name)
-        vfuncv = versionInfo.lookupFunction(v)
+        versionName = versionContext.lookupVersion(versionInfo.key)
+        vfuncv = versionInfo.lookupFunction(versionName)
         return vfuncv(*args, **kwargs)
 
     vfunc_wrapper.versionInfo = versionInfo
@@ -38,77 +41,77 @@ class VersionInfo():
     def __init__(self, vfunc):
         self.vfunc = vfunc
         self.versions = {}
-        self.defaultVersion = None
+        self.defaultVersionName = None
 
     @property
-    def name(self):
-        return functionNameFrom(self.vfunc)
+    def key(self):
+        return functionKeyFrom(self.vfunc)
 
-    def lookupFunction(self, v:str):
-        if v: # some version is specified
-            if v in self.versions:
-                return self.versions[v]
+    def lookupFunction(self, versionName:str):
+        if versionName: # some version is specified
+            if versionName in self.versions:
+                return self.versions[versionName]
             else:
-                raise NameError(f'Version {v} not defined')
+                raise NameError(f'Version {versionName} not defined')
         else:
-            if self.defaultVersion:
-                return self.versions[self.defaultVersion]
+            if self.defaultVersionName:
+                return self.versions[self.defaultVersionName]
             else:
                 return self.vfunc
 
     def addVersion(self, vfuncv):
-        versionName = versionFrom(self.vfunc.__name__, vfuncv.__name__)
+        versionName = versionNameFrom(self.vfunc.__name__, vfuncv.__name__)
         self[versionName] = vfuncv
         vfuncv.versionInfo = self
 
     def setDefault(self, vfuncv):
-        self.defaultVersion = self.versionName(vfuncv)
+        self.defaultVersionName = self.versionName(vfuncv)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value): # TODO oh jeez these names are confusing here
         self.versions[key] = value
 
     def versionName(self, vfuncv):
-        return versionFrom(self.vfunc.__name__, vfuncv.__name__)
+        return versionNameFrom(self.vfunc.__name__, vfuncv.__name__)
 
 class VersionContext():
     """
-    Global context to hold mapping from name to function to which version to use
+    Global context to hold mapping from key to which version to use for a versionedfunction
     """
     def __init__(self):
-        self.name2version = {}
-        self.name2versionInfo = {} # populated during import/decorators
+        self.key2version = {}
+        self.key2versionInfo = {} # populated during import/decorators
 
     def register(self, versionInfo):
-        if versionInfo.name in self.name2versionInfo:
-            raise NameError(f"Already registered function {versionInfo.name} in {self.name2versionInfo[versionInfo.name]}")
-        self.name2versionInfo[versionInfo.name] = versionInfo
+        if versionInfo.key in self.key2versionInfo:
+            raise NameError(f"Already registered function {versionInfo.key} in {self.key2versionInfo[versionInfo.key]}")
+        self.key2versionInfo[versionInfo.key] = versionInfo
 
-    def __getitem__(self, name):
-        return self.name2version[name]
+    def __getitem__(self, key):
+        return self.key2version[key]
 
-    def lookupVersion(self, name):
-        if name in self.name2version:
-            return self.name2version[name]
+    def lookupVersion(self, key):
+        if key in self.key2version:
+            return self.key2version[key]
         else:
             return None
 
-    def __setitem__(self, name, version):
-        self.name2version[name] = version
+    def __setitem__(self, key, version):
+        self.key2version[key] = version
 
 versionContext = VersionContext() # versions to use for versionedfunctions, global context
 
-def versionFrom(vfuncName, vfuncvName):
+def versionNameFrom(vfunc_str, vfuncv_str):
     """
     Remove the base versionedfunction name and left strip _ characters
 
-    :param vfuncName: A versionedfunction name (string)
-    :param vfuncvName: A function that is a version of a versionedfunction (name, string again)
+    :param vfunc_str: A versionedfunction name (string)
+    :param vfuncv_str: A function that is a version of a versionedfunction (name, string again)
     :return:
     """
-    assert vfuncvName.startswith(vfuncName)
-    return vfuncvName[len(vfuncName):].lstrip('_')
+    assert vfuncv_str.startswith(vfunc_str)
+    return vfuncv_str[len(vfunc_str):].lstrip('_')
 
-def functionNameFrom(vfunc):
+def functionKeyFrom(vfunc):
     """
     The string used to identify a versionedfunction is defined by:
     * is the last two components of vfunc.__qualname__ [via split('.')]

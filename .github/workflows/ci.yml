@@ -51,7 +51,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install setuptools poetry wheel twine
-    - name: Build version from git
+    - name: Set build version from git
       run: |
         poetry version `poetry version -s`.`git rev-list --count HEAD`+`git rev-parse --short HEAD`
     - name: Build
