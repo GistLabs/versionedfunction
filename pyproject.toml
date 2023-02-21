@@ -3,9 +3,10 @@ name = "versionedfunction"
 version = "0.8"
 description = "Sometimes you want to be able to dynamically call different versions of a function"
 authors = ["John Heintz <john@gistlabs.com>"]
+readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
