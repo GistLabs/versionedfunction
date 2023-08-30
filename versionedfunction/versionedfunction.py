@@ -24,14 +24,14 @@ def versionedfunction(vfunc):
         return vfuncv
 
     def vfunc_wrapper(*args, **kwargs):
-        versionName = globalversioncontext.lookupVersion(versionInfo.key)
+        versionName = globalversionregistry.lookupVersion(versionInfo.key)
         vfuncv = versionInfo.lookupFunction(versionName)
         return vfuncv(*args, **kwargs)
 
     vfunc_wrapper.versionInfo = versionInfo
     vfunc_wrapper.version = version
     vfunc_wrapper.default = default
-    globalversioncontext.register(versionInfo)
+    globalversionregistry.register(versionInfo)
 
     return vfunc_wrapper
 
@@ -48,12 +48,17 @@ class VersionInfo():
     def key(self):
         return functionKeyFrom(self.vfunc)
 
+    def hasVersion(self, versionName:str):
+        return versionName in self.versions
+
     def lookupFunction(self, versionName:str):
         if versionName: # some version is specified
             if versionName in self.versions:
                 return self.versions[versionName]
+            elif versionName == self.vfunc.__name__:
+                return self.vfunc
             else:
-                raise NameError(f'Version {versionName} not defined')
+                raise NameError(f'Version {versionName} not defined for {self.key}')
         else:
             if self.defaultVersionName:
                 return self.versions[self.defaultVersionName]
@@ -87,6 +92,12 @@ class GlobalVersionContext():
             raise NameError(f"Already registered function {versionInfo.key} in {self.key2versionInfo[versionInfo.key]}")
         self.key2versionInfo[versionInfo.key] = versionInfo
 
+    def registryLookup(self, key) -> VersionInfo:
+        if key in self.key2versionInfo:
+            return self.key2versionInfo[key]
+        else:
+            return None
+
     def __getitem__(self, key):
         return self.key2version[key]
 
@@ -99,7 +110,7 @@ class GlobalVersionContext():
     def __setitem__(self, key, version):
         self.key2version[key] = version
 
-globalversioncontext = GlobalVersionContext() # versions to use for versionedfunctions, global context
+globalversionregistry = GlobalVersionContext() # versions to use for versionedfunctions, global context
 
 def versionNameFrom(vfunc_str, vfuncv_str):
     """

@@ -7,7 +7,7 @@ versions of a function.
 ## Example
 
 ```python
-from versionedfunction import versionedfunction, globalversioncontext
+from versionedfunction import versionedfunction, globalversionregistry
 
 
 class Foo():
@@ -29,7 +29,7 @@ foo = Foo()
 
 assert foo.algo() == 2
 
-globalversioncontext['Foo.algo'] = "1"
+globalversionregistry['Foo.algo'] = "1"
 assert foo.algo() == 1
 ```
 
