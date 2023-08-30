@@ -32,7 +32,7 @@ def test_default_version():
 def test_context():
     assert len(_localversioncontext.stack) == 1
 
-    with versioncontext2(Test.foo) as vc:
+    with versioncontext(Test.foo) as vc:
         assert len(_localversioncontext.stack) == 2
 
     assert len(_localversioncontext.stack) == 1
