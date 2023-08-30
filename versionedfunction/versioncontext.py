@@ -1,4 +1,3 @@
-import functools
 import threading
 from contextlib import ContextDecorator
 
