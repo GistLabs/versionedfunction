@@ -5,7 +5,7 @@
 
 """
 
-from versionedfunction2 import versionedfunction, versioncontext, globalversionregistry, localversioncontext
+from versionedfunction2 import versionedfunction, versioncontext, VersionedException, VersionedFunction, localversioncontext
 import pytest
 
 
@@ -101,6 +101,23 @@ def test_multiple_and_nested_contexts():
         assert a.x() == 0 and b.y() == 2
 
     assert a.x() == 1 and b.y() == 2
+
+def test_version_function_keys():
+    VersionedFunction(Test.foo).key == 'Test.foo'
+    VersionedFunction(Test.foo1).key == 'Test.foo1'
+
+    VersionedFunction(test_default).key == f'versionedfunction2_test.{test_default.__name__}'
+
+
+def test_not_versioned_fails():
+    class E:
+        def e(self):
+            return 0
+
+    with pytest.raises(VersionedException):
+        with versioncontext(E.e):
+            pass
+
 
 def test_version_then_default():
     class C:

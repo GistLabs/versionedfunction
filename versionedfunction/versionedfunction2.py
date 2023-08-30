@@ -7,7 +7,7 @@ from contextlib import ContextDecorator
 from functools import cached_property
 
 
-class VersionException(Exception):
+class VersionedException(Exception):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -73,7 +73,7 @@ class VersionedFunction():
     def default(self, default):
         if self._default is not self:
             #already been changed
-            raise VersionException(f"{self.key} default version can't be changed to {default.key} because already {self._default.key}")
+            raise VersionedException(f"{self.key} default version can't be changed to {default.key} because already {self._default.key}")
         self._default = default
 
     @cached_property
@@ -160,7 +160,7 @@ class VersionContext:
             vfunc = globalversionregistry.lookup(arg)
 
             if not vfunc:
-                continue
+                raise VersionedException(f'{arg} is not a registered versionedfunction')
             else:
                 origin = vfunc.origin
 
