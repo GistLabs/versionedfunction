@@ -5,7 +5,7 @@
 
 """
 
-from versionedfunction import versionedfunction, versionContext, versionNameFrom
+from versionedfunction import versionedfunction, globalversioncontext, versionNameFrom
 import pytest
 
 
@@ -38,7 +38,7 @@ def test_fooAlgo_v2_in_versions():
     assert fooAlgo.versionInfo.lookupFunction('v2') == fooAlgo_v2
 
 def test_call_v2():
-    versionContext['versionedfunction_test.fooAlgo'] = 'v2'
+    globalversioncontext['versionedfunction_test.fooAlgo'] = 'v2'
     assert fooAlgo() == 2
 
 @versionedfunction
@@ -58,27 +58,48 @@ def barAlgoV2(a, b):
     return a + b + 2
 
 def test_change_version():
-    versionContext['versionedfunction_test.barAlgo'] = None
+    globalversioncontext['versionedfunction_test.barAlgo'] = None
     assert barAlgo(1, 1) == 3
-    versionContext['versionedfunction_test.barAlgo'] = 'V1'
+    globalversioncontext['versionedfunction_test.barAlgo'] = 'V1'
     assert barAlgo(1, 1) == 3 # same as before
-    versionContext['versionedfunction_test.barAlgo'] = 'V2'
+    globalversioncontext['versionedfunction_test.barAlgo'] = 'V2'
     assert barAlgo(1, 1) == 4 # now use other version
-    versionContext['versionedfunction_test.barAlgo'] = None
+    globalversioncontext['versionedfunction_test.barAlgo'] = None
     assert barAlgo(1, 1) == 3 # back to default
 
 def test_bad_version_fails():
-    versionContext['versionedfunction_test.barAlgo'] = None # None is ok
+    globalversioncontext['versionedfunction_test.barAlgo'] = None # None is ok
     assert barAlgo(1, 1) == 3
-    versionContext['versionedfunction_test.barAlgo'] = '' # Empty string is ok
+    globalversioncontext['versionedfunction_test.barAlgo'] = '' # Empty string is ok
     assert barAlgo(1, 1) == 3
     with pytest.raises(NameError, match="Version xyz not defined"):
-        versionContext['versionedfunction_test.barAlgo'] = 'xyz'  # NOT ok
+        globalversioncontext['versionedfunction_test.barAlgo'] = 'xyz'  # NOT ok
         assert barAlgo(1, 1) == 3
 
 def test_registered_names():
-    assert versionContext.key2versionInfo['versionedfunction_test.barAlgo'] == barAlgo.versionInfo
-    assert versionContext.key2versionInfo['versionedfunction_test.fooAlgo'] == fooAlgo.versionInfo
+    assert globalversioncontext.key2versionInfo['versionedfunction_test.barAlgo'] == barAlgo.versionInfo
+    assert globalversioncontext.key2versionInfo['versionedfunction_test.fooAlgo'] == fooAlgo.versionInfo
+
+
+def test_single_function_is_default():
+    @versionedfunction
+    def bazAlgo():
+        return 1
+
+    assert bazAlgo() == 1
+
+
+def test_original_is_default():
+    @versionedfunction
+    def bobAlgo():
+        return 1
+
+    @bobAlgo.version
+    def bobAlgo2():
+        return 2
+
+    assert bobAlgo() == 1
+
 
 def test_not_double_register():
     with pytest.raises(NameError, match="Already registered function versionedfunction_test.barAlgo"):
@@ -94,8 +115,8 @@ def test_func2name():
     assert versionNameFrom.__qualname__ == 'versionNameFrom'
 
 def test_method2name():
-    assert versionContext.register.__qualname__ == 'VersionContext.register'
-    assert versionContext.register.__module__ == "versionedfunction.versionedfunction"
+    assert globalversioncontext.register.__qualname__ == 'GlobalVersionContext.register'
+    assert globalversioncontext.register.__module__ == "versionedfunction.versionedfunction"
 
 def test_nestedModuleName():
     assert 'email.mime.text'.split('.')[-1] == 'text'
@@ -128,8 +149,12 @@ def test_classmethod_versioned():
 
     assert foo.algo() == 2
 
-    versionContext['Foo.algo'] = "1"
+    globalversioncontext['Foo.algo'] = "1"
     assert foo.algo() == 1
+
+    globalversioncontext['Foo.algo'] = ""
+    assert foo.algo() == 2 # back to default
+
 
 def test_each_versionInfoName():
     assert foo.algo1.versionInfo.key == 'Foo.algo'
@@ -140,5 +165,5 @@ def test_each_versionInfoName():
 
 def test_default():
     assert Foo.algo.versionInfo.defaultVersionName == '2'
-    versionContext[Foo.algo.versionInfo.key] = None # remove any set values
+    globalversioncontext[Foo.algo.versionInfo.key] = None # remove any set values
     assert foo.algo() == 2 # must use default

@@ -1,9 +1,10 @@
 # Copyright (c) 2021 John Heintz, Gist Labs https://gistlabs.com
 # License Apache v2 http://www.apache.org/licenses/
 
+import threading
+from contextlib import ContextDecorator
+
 """
-
-
 Naming is hard:
  * vfunc is a versionedfunction, and vfuncv is a version of a versionedfunction
  * versionKey is unique string to identify versionedfunction, like 'Foo.algo' or 'modulename.vfunc'
@@ -23,14 +24,14 @@ def versionedfunction(vfunc):
         return vfuncv
 
     def vfunc_wrapper(*args, **kwargs):
-        versionName = versionContext.lookupVersion(versionInfo.key)
+        versionName = globalversioncontext.lookupVersion(versionInfo.key)
         vfuncv = versionInfo.lookupFunction(versionName)
         return vfuncv(*args, **kwargs)
 
     vfunc_wrapper.versionInfo = versionInfo
     vfunc_wrapper.version = version
     vfunc_wrapper.default = default
-    versionContext.register(versionInfo)
+    globalversioncontext.register(versionInfo)
 
     return vfunc_wrapper
 
@@ -73,7 +74,7 @@ class VersionInfo():
     def versionName(self, vfuncv):
         return versionNameFrom(self.vfunc.__name__, vfuncv.__name__)
 
-class VersionContext():
+class GlobalVersionContext():
     """
     Global context to hold mapping from key to which version to use for a versionedfunction
     """
@@ -98,7 +99,7 @@ class VersionContext():
     def __setitem__(self, key, version):
         self.key2version[key] = version
 
-versionContext = VersionContext() # versions to use for versionedfunctions, global context
+globalversioncontext = GlobalVersionContext() # versions to use for versionedfunctions, global context
 
 def versionNameFrom(vfunc_str, vfuncv_str):
     """

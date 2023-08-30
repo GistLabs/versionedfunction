@@ -5,8 +5,10 @@ versions of a function.
 * runtime "always on" support for versions code changes
 
 ## Example
+
 ```python
-from versionedfunction import versionedfunction, versionContext
+from versionedfunction import versionedfunction, globalversioncontext
+
 
 class Foo():
     @versionedfunction
@@ -21,11 +23,13 @@ class Foo():
     @algo.version
     def algo2(self):
         return 2
+
+
 foo = Foo()
 
 assert foo.algo() == 2
 
-versionContext['Foo.algo'] = "1"
+globalversioncontext['Foo.algo'] = "1"
 assert foo.algo() == 1
 ```
 
