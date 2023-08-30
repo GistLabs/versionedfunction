@@ -17,6 +17,7 @@ def versionedfunction(vfunc):
 
     def version(vfuncv):
         versionInfo.addVersion(vfuncv)
+        vfuncv.versionInfo = versionInfo
         return vfuncv
 
     def default(vfuncv):
@@ -29,6 +30,7 @@ def versionedfunction(vfunc):
         return vfuncv(*args, **kwargs)
 
     vfunc_wrapper.versionInfo = versionInfo
+    vfunc_wrapper.original = vfunc
     vfunc_wrapper.version = version
     vfunc_wrapper.default = default
     globalversionregistry.register(versionInfo)
@@ -42,6 +44,7 @@ class VersionInfo():
     def __init__(self, vfunc):
         self.vfunc = vfunc
         self.versions = {}
+        self.versions[vfunc.__name__] = vfunc # special case to support original function
         self.defaultVersionName = None
 
     @property
@@ -50,6 +53,13 @@ class VersionInfo():
 
     def hasVersion(self, versionName:str):
         return versionName in self.versions
+
+    def findFuncForVersion(self, versionName:str):
+        reversed = {v: k for k, v in self.versions.items()}
+        if versionName in reversed:
+            return reversed[versionName]
+        else:
+            return None
 
     def lookupFunction(self, versionName:str):
         if versionName: # some version is specified
@@ -102,6 +112,9 @@ class GlobalVersionContext():
         return self.key2version[key]
 
     def lookupVersion(self, key):
+        version = localversioncontext.searchForVersion(key)
+        if version: return version
+
         if key in self.key2version:
             return self.key2version[key]
         else:
@@ -111,6 +124,113 @@ class GlobalVersionContext():
         self.key2version[key] = version
 
 globalversionregistry = GlobalVersionContext() # versions to use for versionedfunctions, global context
+
+
+class VersionContext:
+    def __init__(self):
+        self.map = {} # from str key to str version
+
+    def add(self, args):
+        """
+        Support
+            (key:str, version:str),
+            ..., key, version:str, ...
+            vfunc
+
+
+        if arg(n) is vfunc, and arg(n+1) is str:
+            key, version
+
+        if arg(n) is vfunc(v) arg(n+1) is not str:
+            vfunc(v) is used
+
+        :param arg:
+        :return:
+        """
+        for i in range(len(args)):
+            arg = args[i]
+
+            # tuple (key, version)
+            if isinstance(arg, (list, tuple)) and len(arg) == 2:
+                key, version = arg
+                self.addKeyVersion(key, version)
+
+            # lookahead and see if args[i+1] is version for args[i] vfunc
+            #if i+1 <= len(args)-1 and isinstance(args(i+1), str):
+            #    versionInfo = self.findVersionInfoFrom(args[i])
+            #    version = args[i+1]
+
+            # if vfuncv like Foo.algo4 reference
+            if hasattr(args[i], 'versionInfo'):
+                f = args[i]
+                versionInfo = f.versionInfo
+                if versionInfo.vfunc == f.original:
+                    self.addKeyVersion(versionInfo.key, f.original.__name___)
+                elif versionInfo.findFuncForVersion(f):
+                    self.addKeyVersion(versionInfo.key, versionInfo.findFuncForVersion(f))
+                else:
+                    raise NameError(f'Found {versionInfo.key} but no version for {args[i]}')
+
+
+
+    def addKeyVersion(self, key, version):
+        versionInfo = self.findVersionInfoFrom(key)
+
+        if not versionInfo.hasVersion(version):
+            raise Exception(f'Found {key}, but no version {version}')
+
+        self.map[versionInfo.key] = version
+
+    def findVersionInfoFrom(self, key):
+        versionInfo = None
+        if isinstance(key, str):
+            versionInfo = globalversionregistry.registryLookup(key)
+        elif hasattr(key, 'versionInfo'):
+            versionInfo = key.versionInfo
+        if not versionInfo:
+            raise Exception(f'Not Found in Version Registry: {key}')
+        return versionInfo
+
+    def lookup(self, key):
+        if key in self.map:
+            return self.map[key]
+        else:
+            return None
+
+
+class LocalVersionContext(threading.local):
+    stack = []
+
+    def push(self):
+        self.stack.append(VersionContext())
+
+    def pop(self):
+        self.stack.pop(0)
+
+    def top(self) -> VersionContext:
+        return self.stack[-1]
+
+    def searchForVersion(self, key):
+        # search stack last first for key
+        for vc in reversed(self.stack):
+            found = vc.lookup(key)
+            if found:
+                return found
+
+localversioncontext = LocalVersionContext()
+
+class versioncontext(ContextDecorator):
+    def __init__(self, *args, **kwargs):
+        self.args = args
+
+    def __enter__(self):
+        localversioncontext.push()
+        localversioncontext.top().add(self.args)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        localversioncontext.pop()
+
+
 
 def versionNameFrom(vfunc_str, vfuncv_str):
     """
