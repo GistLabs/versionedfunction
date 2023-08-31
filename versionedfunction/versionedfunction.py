@@ -46,6 +46,7 @@ class VersionedFunction():
         self.func = func # the underlying function
         self._wrapper = None # the decorated and wrapper function
 
+        self._default = None
         if not origin:
             self._default = self
 
@@ -113,6 +114,11 @@ def versionedfunction(func):
     vfunc = VersionedFunction(func)
 
     def version(funcv):
+        if hasattr(funcv, 'vfunc'):
+            # already created, just return wrapped func
+            vfuncv = funcv.vfunc
+            return vfuncv.wrapper
+
         vfuncv = VersionedFunction(funcv, vfunc)
 
         def funcv_wrapper(*args, **kwargs):
@@ -120,20 +126,19 @@ def versionedfunction(func):
             return funcv(*args, **kwargs)
 
         vfuncv.wrapper = funcv_wrapper
+        funcv_wrapper.vfunc = vfuncv
 
         globalversionregistry._register(vfuncv)
 
         return funcv_wrapper
 
-    def default(funcORv):
-        if not globalversionregistry.lookup(funcORv):
-            version(funcORv)
-
-        vfuncv = globalversionregistry.lookup(funcORv)
+    def default(funcv):
+        funcv_wrapper = version(funcv)
+        vfuncv = funcv_wrapper.vfunc
 
         vfunc.default = vfuncv
 
-        return vfuncv.wrapper
+        return funcv_wrapper
 
     def func_wrapper(*args, **kwargs):
         vfuncv = localversioncontext.searchForVersion(vfunc)
@@ -145,6 +150,7 @@ def versionedfunction(func):
 
     func_wrapper.version = version
     func_wrapper.default = default
+    func_wrapper.vfunc = vfunc
 
     globalversionregistry._register(vfunc)
 

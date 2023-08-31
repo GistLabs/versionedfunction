@@ -129,7 +129,18 @@ def test_version_then_default():
         def y1(self):
             return 1
 
-        #@y.version
+        @y.version
         @y.default
         def y2(self):
             return 2
+
+def test_version_repeat():
+    class D:
+        @versionedfunction
+        def y(self):
+            return 0
+
+        @y.version
+        @y.version
+        def y1(self):
+            return 1
