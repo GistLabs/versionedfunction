@@ -197,7 +197,7 @@ class LocalVersionContext(threading.local):
 
 localversioncontext = LocalVersionContext()
 
-class versioncontext(ContextDecorator):
+class versionedcontext(ContextDecorator):
     def __init__(self, *args, **kwargs):
         self.args = args
 

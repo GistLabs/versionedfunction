@@ -7,7 +7,7 @@ versions of a function.
 ## Example
 
 ```python
-from versionedfunction import versionedfunction, globalversionregistry
+from versionedfunction import versionedfunction, versionedcontext
 
 
 class Foo():
@@ -19,18 +19,24 @@ class Foo():
     def algo1(self):
         return 1
 
-    @algo.default
     @algo.version
+    @algo.default
     def algo2(self):
         return 2
 
 
 foo = Foo()
 
+# the default is algo2
 assert foo.algo() == 2
 
-globalversionregistry['Foo.algo'] = "1"
-assert foo.algo() == 1
+with versionedcontext(Foo.algo):
+    # choose Foo.algo
+    assert foo.algo() == 0
+
+@versionedcontext(Foo.algo1)
+def some_method():
+    assert foo.algo() == 1
 ```
 
 ## Installing
@@ -46,7 +52,7 @@ from `git rev-list --count HEAD`.
 
 We recommend picking a version like:
 
-`versionedfunction = "^0.8"`
+`versionedfunction = "^0.9"`
 
 ## Community guidelines
 We welcome contributions and questions. Please head over to github and 

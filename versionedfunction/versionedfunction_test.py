@@ -5,7 +5,7 @@
 
 """
 
-from versionedfunction import versionedfunction, versioncontext, VersionedException, VersionedFunction, localversioncontext
+from versionedfunction import versionedfunction, versionedcontext, VersionedException, VersionedFunction, localversioncontext
 import pytest
 
 
@@ -28,18 +28,18 @@ t = Test()
 def test_no_context_original():
     assert t.foo() == 1
 
-@versioncontext(Test.foo2)
+@versionedcontext(Test.foo2)
 def test_context_2():
     assert t.foo() == 2
 
-@versioncontext(Test.foo)
+@versionedcontext(Test.foo)
 def test_context_original():
     assert t.foo() == 0
 
 def test_with_with():
     assert t.foo() == 1
 
-    with versioncontext(Test.foo1):
+    with versionedcontext(Test.foo1):
         assert t.foo() == 1
 
     assert t.foo() == 1
@@ -86,16 +86,16 @@ def test_multiple_and_nested_contexts():
     b = B()
 
     assert a.x() == 1 and b.y() == 2
-    with versioncontext(A.x, B.y1):
+    with versionedcontext(A.x, B.y1):
         assert a.x() == 0 and b.y() == 1
     assert a.x() == 1 and b.y() == 2
 
     lvc = localversioncontext
 
-    with versioncontext(A.x):
+    with versionedcontext(A.x):
         assert a.x() == 0 and b.y() == 2
 
-        with versioncontext(B.y1):
+        with versionedcontext(B.y1):
             assert a.x() == 0 and b.y() == 1
 
         assert a.x() == 0 and b.y() == 2
@@ -115,7 +115,7 @@ def test_not_versioned_fails():
             return 0
 
     with pytest.raises(VersionedException):
-        with versioncontext(E.e):
+        with versionedcontext(E.e):
             pass
 
 
