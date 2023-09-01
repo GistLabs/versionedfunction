@@ -144,3 +144,8 @@ def test_version_repeat():
         @y.version
         def y1(self):
             return 1
+
+def test_func_name_wrapped():
+    assert Test.foo.__name__ == 'foo'
+    assert Test.foo1.__name__ == 'foo1'
+    assert Test.foo2.__name__ == 'foo2'

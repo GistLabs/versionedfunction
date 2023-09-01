@@ -130,6 +130,7 @@ def versionedfunction(func):
 
         globalversionregistry._register(vfuncv)
 
+        functools.update_wrapper(funcv_wrapper, funcv)
         return funcv_wrapper
 
     def default(funcv):
@@ -154,6 +155,7 @@ def versionedfunction(func):
 
     globalversionregistry._register(vfunc)
 
+    functools.update_wrapper(func_wrapper, func)
     return func_wrapper
 
 
